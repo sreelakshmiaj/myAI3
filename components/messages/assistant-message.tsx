@@ -3,7 +3,7 @@ import { Response } from "@/components/ai-elements/response";
 import { ReasoningPart } from "./reasoning-part";
 import { ToolCall, ToolResult } from "./tool-call";
 
-export function AssistantMessage({ message, status, isLastMessage, durations }: { message: UIMessage; status?: string; isLastMessage?: boolean; durations?: Record<string, number> }) {
+export function AssistantMessage({ message, status, isLastMessage, durations, onDurationChange }: { message: UIMessage; status?: string; isLastMessage?: boolean; durations?: Record<string, number>; onDurationChange?: (key: string, duration: number) => void }) {
     return (
         <div className="w-full">
             <div className="text-sm flex flex-col gap-4">
@@ -15,7 +15,7 @@ export function AssistantMessage({ message, status, isLastMessage, durations }: 
                         case "text":
                             return <Response key={`${message.id}-${i}`}>{part.text}</Response>;
                         case "reasoning":
-                            return <ReasoningPart key={`${message.id}-${i}`} part={part} isStreaming={isStreaming} duration={duration} />;
+                            return <ReasoningPart key={`${message.id}-${i}`} part={part} isStreaming={isStreaming} duration={duration} onDurationChange={onDurationChange ? (d) => onDurationChange(durationKey, d) : undefined} />;
                         case "tool-webSearch":
                         case "tool-readNotebookLecture":
                         case "tool-readSlideLecture":

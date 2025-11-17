@@ -36,6 +36,7 @@ export type ReasoningProps = ComponentProps<typeof Collapsible> & {
   defaultOpen?: boolean;
   onOpenChange?: (open: boolean) => void;
   duration?: number;
+  onReasoningDurationChange?: (duration: number) => void;
 };
 
 const AUTO_CLOSE_DELAY = 1000;
@@ -49,6 +50,7 @@ export const Reasoning = memo(
     defaultOpen = true,
     onOpenChange,
     duration: durationProp,
+    onReasoningDurationChange,
     children,
     ...props
   }: ReasoningProps) => {
@@ -64,6 +66,11 @@ export const Reasoning = memo(
 
     const [hasAutoClosed, setHasAutoClosed] = useState(false);
     const [startTime, setStartTime] = useState<number | null>(null);
+    const onReasoningDurationChangeRef = useRef(onReasoningDurationChange);
+
+    useEffect(() => {
+      onReasoningDurationChangeRef.current = onReasoningDurationChange;
+    }, [onReasoningDurationChange]);
 
     // Track duration when streaming starts and ends
     useEffect(() => {
@@ -72,7 +79,9 @@ export const Reasoning = memo(
           setStartTime(Date.now());
         }
       } else if (startTime !== null) {
-        setDuration(Math.ceil((Date.now() - startTime) / MS_IN_S));
+        const computedDuration = Math.ceil((Date.now() - startTime) / MS_IN_S);
+        setDuration(computedDuration);
+        onReasoningDurationChangeRef.current?.(computedDuration);
         setStartTime(null);
       }
     }, [isStreaming, startTime, setDuration]);

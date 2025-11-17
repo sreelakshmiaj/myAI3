@@ -68,7 +68,6 @@ const saveMessagesToStorage = (messages: UIMessage[], durations: Record<string, 
 export default function Chat() {
   const [isClient, setIsClient] = useState(false);
   const [durations, setDurations] = useState<Record<string, number>>({});
-  const streamingStartTimeRef = useRef<number | null>(null);
   const welcomeMessageShownRef = useRef<boolean>(false);
 
   const stored = typeof window !== 'undefined' ? loadMessagesFromStorage() : { messages: [], durations: {} };
@@ -76,27 +75,6 @@ export default function Chat() {
 
   const { messages, sendMessage, status, stop, setMessages } = useChat({
     messages: initialMessages,
-    onFinish: (event) => {
-      if (streamingStartTimeRef.current !== null) {
-        const elapsedSeconds = Math.ceil((Date.now() - streamingStartTimeRef.current) / 1000);
-        const finishedMessage = event.message;
-
-        setDurations((prevDurations) => {
-          const newDurations = { ...prevDurations };
-          finishedMessage.parts.forEach((part: any, partIndex: number) => {
-            if (part.type === "reasoning") {
-              const key = `${finishedMessage.id}-${partIndex}`;
-              newDurations[key] = elapsedSeconds;
-            }
-          });
-
-          saveMessagesToStorage(event.messages, newDurations);
-          return newDurations;
-        });
-
-        streamingStartTimeRef.current = null;
-      }
-    },
   });
 
   useEffect(() => {
@@ -104,6 +82,20 @@ export default function Chat() {
     setDurations(stored.durations);
     setMessages(stored.messages);
   }, []);
+
+  useEffect(() => {
+    if (isClient) {
+      saveMessagesToStorage(messages, durations);
+    }
+  }, [durations, messages, isClient]);
+
+  const handleDurationChange = (key: string, duration: number) => {
+    setDurations((prevDurations) => {
+      const newDurations = { ...prevDurations };
+      newDurations[key] = duration;
+      return newDurations;
+    });
+  };
 
   useEffect(() => {
     if (isClient && initialMessages.length === 0 && !welcomeMessageShownRef.current) {
@@ -131,7 +123,6 @@ export default function Chat() {
   });
 
   function onSubmit(data: z.infer<typeof formSchema>) {
-    streamingStartTimeRef.current = Date.now();
     sendMessage({ text: data.message });
     form.reset();
   }
@@ -170,7 +161,7 @@ export default function Chat() {
           <div className="flex flex-col items-center justify-end min-h-full">
             {isClient ? (
               <>
-                <MessageWall messages={messages} status={status} durations={durations} />
+                <MessageWall messages={messages} status={status} durations={durations} onDurationChange={handleDurationChange} />
                 {status === "submitted" && (
                   <div className="flex justify-start max-w-3xl w-full">
                     <Loader2 className="size-4 animate-spin text-muted-foreground" />
